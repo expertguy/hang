@@ -168,6 +168,17 @@ const Navigate = useNavigate();
                 {isLoading ? 'Processing...' : 'Continue with LinkedIn'}
               </button>
 
+              <button
+                onClick={() => {
+                  close();
+                  Navigate('/home');
+                }}
+                disabled={isLoading}
+                className={`w-100 mt-3 flex items-center justify-center bg-white border-2 border-gray-300 text-gray-700 britti_medium fs_18 py-3 rounded-[18px] ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                Continue as Guest
+              </button>
+
               <span className='fs_14 txt_grey mt-4'>
                 By continuing, you agree to our <Link to={'/terms'} className='underline'>Terms </Link> & <Link to={'/privacy'} className='underline'>Privacy Policy</Link>
               </span>
