@@ -2,9 +2,10 @@ import React, { useState } from 'react'
 import { Mobile } from '../../icons/icons'
 import LoginDrawer from '../component/auth/loginDrawer'
 import LoginConfirm from '../component/auth/loginConfrim';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
-
+      const navigate = useNavigate();
       const [show, setShow] = useState(false);
       const [userData,setUserdata] = useState({});
       const handleShow = () => setShow(true);
@@ -33,6 +34,12 @@ const Login = () => {
           </div>
           <button onClick={() => handleShow()} className='primary_btn w-full rounded-[18px] h-[56px] britti_medium fs_18 mt-5'>
             Login
+          </button>
+          <button
+            onClick={() => navigate('/home')}
+            className='w-full rounded-[18px] h-[56px] britti_medium fs_18 mt-3 bg-white border-2 border-gray-300 text-gray-700'
+          >
+            Continue as Guest
           </button>
         </div>
       </div>
