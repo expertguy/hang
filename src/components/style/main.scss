@@ -1,0 +1,90 @@
+$primary: #f4473e;
+$primary2: #f6921e;
+$secondary: #4d4d4d;
+$secondary2: #5e5e5e;
+$lightsecondary: #c5c5c5;
+$success: #28a745;
+$info: #17a2b8;
+$warning: #ffc107;
+$danger: #dc3545;
+$light: #f6f6f6;
+$dark: #343a40;
+$white: #fff;
+$sm: 640px;
+$lightprimary: #003f7d;
+@import url('./fonts.css');
+@import './bootstrap/bootstrap';
+@import url('./color.css');
+
+.bottom-navbar {
+  height: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 50;
+  border: 1px solid #f3f3f3 !important;
+  box-shadow: 0px 2px 8px 0px #0000001f;
+  background-color: var(--primaryLight) !important;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+
+  .active,
+  :hover {
+    color: $primary;
+  }
+}
+
+/* Add this to your stylesheet */
+.input-bottom-border {
+  border: none;
+  border-bottom: 2px solid #ccc;
+  /* You can change the color here */
+  outline: none;
+
+  &:focus {
+    border-bottom: 2px solid $primary;
+    /* Focused border color */
+  }
+}
+
+.home-h {
+  height: calc(100vh - 135px);
+}
+
+.custom-form {
+  label {
+    font-size: 14px !important;
+    color: #252C32 !important;
+    margin-bottom: 0.2rem !important;
+  }
+
+  .form-select,
+  .form-control {
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    border-color: #b5babc !important;
+    min-height: 39px !important;
+
+    &::placeholder {
+      color: #9AA6AC !important;
+    }
+
+    &:focus {
+      box-shadow: none !important;
+      border-color: #656565 !important;
+    }
+
+    &.is-invalid {
+      border-color: #dc3545 !important;
+    }
+  }
+  .comment{
+    border-radius: 2rem !important;
+    padding-right: 2.5rem !important;
+  }
+}

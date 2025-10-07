@@ -1,0 +1,39 @@
+:root{
+    --primary:#4A8DFF;
+    --primaryHover: #3a80f9;
+    --bg_weak:#F5F7FA;
+    --darkbg:#0E121B;
+    --text-grey:#525866;
+    --white:#fff;
+    --avatar:#ACCBFF;
+    --text:#0E121B;
+    --border:#E1E4EA;
+    --icon:#99A0AE;
+}
+.grey_icon{
+    color: var(--icon);
+}
+.bg_weak{
+    background-color: var(--bg_weak) !important;
+}
+.bg_dark{
+    background-color: var(--darkbg) ;
+}
+.txt_dark{
+    color: var(--text) !important;
+}
+.txt_grey{
+    color: var(--text-grey) !important;
+}
+.txt_primary{
+color: var(--primary) !important    ;
+}
+.bg_primary{
+    background-color: var(--primary);
+}
+.bg_avatar{
+    background-color: var(--avatar);
+}
+.bg_liightGrey{
+    background-color: var(--bg_weak);
+}

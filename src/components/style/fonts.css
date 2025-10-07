@@ -1,0 +1,52 @@
+@font-face {
+  font-family: "inter-bold";
+  src: url(britti//Inter-Bold.otf);
+}
+@font-face {
+  font-family: "inter-semiBold";
+  src: url(britti//Inter-SemiBold.otf);
+}
+@font-face {
+  font-family: "inter-regular";
+  src: url(britti//Inter-Regular.otf);
+}
+@font-face {
+  font-family: "inter-medium";
+  src: url(britti//Inter-Medium.otf);
+}
+@font-face {
+  font-family: "inter-light";
+  src: url(britti//Inter-Light.ttf);
+}
+@font-face {
+  font-family: "Britti";
+  src: url(britti//Britti-Sans-Regular.otf);
+}
+
+@font-face {
+  font-family: "Britti_bold";
+  src: url(britti//Britti-Sans-Bold.otf);
+}
+
+@font-face {
+  font-family: "Britti_medium";
+  src: url(britti//Britti-Sans-Medium.otf);
+}
+
+@font-face {
+  font-family: "Britti_light";
+  src: url(britti//Britti-Sans-Light.otf);
+}
+
+.britti{
+  font-family: 'Britti';
+}
+.britti_light{
+  font-family: 'Britti_light';
+}
+.britti_bold{
+  font-family: 'Britti_bold';
+}
+.britti_medium{
+  font-family: 'Britti_medium';
+}

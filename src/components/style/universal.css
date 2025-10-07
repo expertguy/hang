@@ -1,0 +1,525 @@
+/* 
+css to disable brower zoom
+*/
+* {
+  touch-action: manipulation;
+}
+
+html, body {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.App {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* 
+_____________________________________
+*/
+
+* {
+  margin: 0;
+  padding: 0;
+  font-family: "britti";
+  /* color: var(--text); */
+}
+a{
+  color: var(--text);
+  text-decoration: none;
+}
+body{
+  background-color: #f2f2f2 !important;
+}
+.text-primary{
+  color: var(--primary) !important;
+}
+.mainScreen {
+  max-width: 500px;
+  margin: auto;
+  position: relative;
+  background-color: #fff;
+}
+/* Text clamp for 1 line */
+.text-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Text clamp for 2 lines */
+.text-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Text clamp for 3 lines */
+.text-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Text clamp for 4 lines */
+.text-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Alternative: Generic class with CSS custom property */
+.text-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: var(--lines, 1);
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Usage examples for the generic class:
+.text-clamp { --lines: 1; }
+.text-clamp { --lines: 2; }
+.text-clamp { --lines: 3; }
+.text-clamp { --lines: 4; }
+*/
+
+
+/* Height classes in 5vh increments */
+.h_5vh {
+  min-height: 5vh;
+}
+
+.h_10vh {
+  min-height: 10vh;
+}
+
+.h_15vh {
+  min-height: 15vh;
+}
+
+.h_20vh {
+  min-height: 20vh;
+}
+
+.h_25vh {
+  min-height: 25vh;
+}
+
+.h_30vh {
+  min-height: 30vh;
+}
+
+.h_35vh {
+  min-height: 35vh;
+}
+
+.h_40vh {
+  min-height: 40vh;
+}
+
+.h_45vh {
+  min-height: 45vh;
+}
+
+.h_50vh {
+  min-height: 50vh;
+}
+
+.h_55vh {
+  min-height: 55vh;
+}
+
+.h_60vh {
+  min-height: 60vh;
+}
+
+.h_65vh {
+  min-height: 65vh;
+}
+
+.h_70vh {
+  min-height: 70vh;
+}
+.h_74vh {
+  min-height: calc(var(--vh, 1vh) * 74);
+}
+.h_75vh {
+  min-height: calc(var(--vh, 1vh) * 75);
+}
+
+.h_80vh {
+  min-height: calc(var(--vh, 1vh) * 80);
+}
+
+.h_85vh {
+  min-height: 85vh;
+}
+
+.h_90vh {
+  min-height: 90vh;
+}
+
+.h_95vh {
+  min-height: 95vh;
+}
+
+.h_100vh {
+  min-height: calc(var(--vh, 1vh) * 100)
+}
+
+.radius_5 {
+  border-radius: 5px;
+}
+.radius_10 {
+  border-radius: 10px;
+}
+.radius_15 {
+  border-radius: 15px;
+}
+.radius_20 {
+  border-radius: 20px;
+}
+
+/* Font Size Classes - Steps of 2px from 10px to 100px */
+
+.fs_10 {
+  font-size: 10px;
+}
+
+.fs_12 {
+  font-size: 12px;
+}
+
+.fs_14 {
+  font-size: 14px;
+}
+
+.fs_16 {
+  font-size: 16px;
+}
+
+.fs_18 {
+  font-size: 18px;
+}
+
+.fs_20 {
+  font-size: 20px;
+}
+
+.fs_22 {
+  font-size: 22px;
+}
+
+.fs_24 {
+  font-size: 24px;
+}
+
+.fs_26 {
+  font-size: 26px;
+}
+
+.fs_28 {
+  font-size: 28px;
+}
+
+.fs_30 {
+  font-size: 30px;
+}
+
+.fs_32 {
+  font-size: 32px;
+}
+
+.fs_34 {
+  font-size: 34px;
+}
+
+.fs_36 {
+  font-size: 36px;
+}
+
+.fs_38 {
+  font-size: 38px;
+}
+
+.fs_40 {
+  font-size: 40px;
+}
+
+.fs_42 {
+  font-size: 42px;
+}
+
+.fs_44 {
+  font-size: 44px;
+}
+
+.fs_46 {
+  font-size: 46px;
+}
+
+.fs_48 {
+  font-size: 48px;
+}
+
+.fs_50 {
+  font-size: 50px;
+}
+
+.fs_52 {
+  font-size: 52px;
+}
+
+.fs_54 {
+  font-size: 54px;
+}
+
+.fs_56 {
+  font-size: 56px;
+}
+
+.fs_58 {
+  font-size: 58px;
+}
+
+.fs_60 {
+  font-size: 60px;
+}
+
+.fs_62 {
+  font-size: 62px;
+}
+
+.fs_64 {
+  font-size: 64px;
+}
+
+.fs_66 {
+  font-size: 66px;
+}
+
+.fs_68 {
+  font-size: 68px;
+}
+
+.fs_70 {
+  font-size: 70px;
+}
+
+.fs_72 {
+  font-size: 72px;
+}
+
+.fs_74 {
+  font-size: 74px;
+}
+
+.fs_76 {
+  font-size: 76px;
+}
+
+.fs_78 {
+  font-size: 78px;
+}
+
+.fs_80 {
+  font-size: 80px;
+}
+
+.fs_82 {
+  font-size: 82px;
+}
+
+.fs_84 {
+  font-size: 84px;
+}
+
+.fs_86 {
+  font-size: 86px;
+}
+
+.fs_88 {
+  font-size: 88px;
+}
+
+.fs_90 {
+  font-size: 90px;
+}
+
+.fs_92 {
+  font-size: 92px;
+}
+
+.fs_94 {
+  font-size: 94px;
+}
+
+.fs_96 {
+  font-size: 96px;
+}
+
+.fs_98 {
+  font-size: 98px;
+}
+
+.fs_100 {
+  font-size: 100px;
+}
+
+/* ----button----- */
+
+.primary_btn {
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  background-color: var(--primary);
+  font-family: 'britti_bold';
+  color: var(--white);
+  transition: 0.2s ease-in-out all;
+}
+.transparent_btn{
+padding: 5px;
+position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  font-family: 'britti_medium';
+  border: 1px solid var(--stroke-soft-200, #E1E4EA);
+  border-radius: 12px;
+  color: #525866;
+  transition: 0.2s ease-in-out all;
+  box-shadow: 0px 1px 2px 0px #0A0D1408;
+}
+.transparent_btn input{
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+.transparent_btn:hover{
+  background-color: var(--grey);
+}
+.primary_btn:hover{
+  background-color: var(--primaryHover);
+}
+
+
+
+@media screen and (max-width:786px) {
+  /* Height classes in 5vh increments */
+.h_5vh {
+  min-height: 5vh;
+}
+
+.h_10vh {
+  min-height: 10vh;
+}
+
+.h_15vh {
+  min-height: 15vh;
+}
+
+.h_20vh {
+  min-height: 20vh;
+}
+
+.h_25vh {
+  min-height: 25vh;
+}
+
+.h_30vh {
+  min-height: 30vh;
+}
+
+.h_35vh {
+  min-height: 35vh;
+}
+
+.h_40vh {
+  min-height: 40vh;
+}
+
+.h_45vh {
+  min-height: 45vh;
+}
+
+.h_50vh {
+  min-height: 50vh;
+}
+
+.h_55vh {
+  min-height: 55vh;
+}
+
+.h_60vh {
+  min-height: 60vh;
+}
+
+.h_65vh {
+  min-height: 65vh;
+}
+
+.h_70vh {
+  min-height: 70vh;
+}
+
+.h_75vh {
+  min-height: 75vh;
+}
+
+.h_80vh {
+  min-height: 70vh;
+}
+
+.h_85vh {
+  min-height: 75vh;
+}
+
+.h_90vh {
+  min-height: 80vh;
+}
+
+.h_95vh {
+  min-height: 90vh;
+}
+
+.h_100vh {
+  min-height: calc(var(--vh, 1vh) * 100);
+}
+}
+
+.noScroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.noScroll {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.form-check-input:checked{
+      background-color: var(--primary);
+    border-color: var(--primary);
+}

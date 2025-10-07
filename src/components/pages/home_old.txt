@@ -1,0 +1,1059 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
+import { GoogleMap, MarkerF, useJsApiLoader } from '@react-google-maps/api';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { RiEqualizer2Line, RiMapPinLine, RiFocus3Line } from 'react-icons/ri';
+import NearbyDrawer from './component/home/nearbyDrawer';
+import FilterDrawer from './component/home/filterDrawer';
+import CheckIn from './component/home/checkIn';
+import CheckOut from './component/home/checkOut';
+import CheckOutComplete from './component/home/checkOutComplete';
+import FooterHome from './footerHome';
+import Splash from './auth/splash';
+import LocationPermissionModal from './LocationPermissionModal';
+import useLocation from '../../utils/location/location';
+import ApiFunction from '../../utils/api/apiFuntions';
+import { useSelector, useDispatch } from 'react-redux';
+import { decryptData } from '../../utils/api/encrypted';
+import { setCheckInStatus, setCheckInData } from '../redux/appDataSlice';
+import VisibilityDrawer from './component/home/visibilityDrawer';
+import { RiArrowRightSLine, RiCloseLine } from '@remixicon/react';
+import { Offcanvas } from 'react-bootstrap';
+
+// Utility functions for check-in management
+const isCheckInActive = () => {
+  try {
+    const checkInData = JSON.parse(localStorage.getItem('checkInData') || '{}');
+    const checkInTime = checkInData?.checkInTime;
+    const duration = checkInData?.duration;
+    
+    if (!checkInTime || !duration) return false;
+    
+    const checkInDate = new Date(checkInTime);
+    const expiryDate = new Date(checkInDate.getTime() + (duration * 60 * 1000));
+    const now = new Date();
+    
+    return now <= expiryDate;
+  } catch (error) {
+    console.error('Error checking check-in status:', error);
+    return false;
+  }
+};
+
+
+const clearExpiredCheckIn = () => {
+  if (!isCheckInActive()) {
+    localStorage.removeItem('checkInLong');
+    localStorage.removeItem('checkInLat');
+    localStorage.removeItem('checkInType');
+    localStorage.removeItem('checkInPlaceName');
+    localStorage.removeItem('checkInData');
+    return true;
+  }
+  return false;
+};
+
+// New component for stacked users list modal
+const StackedUsersModal = ({ show, users, onClose, onUserSelect }) => {
+  if (!show) return null;
+
+  return (
+    <Offcanvas backdropClassName="blurred-backdrop-offcanvas" show={show} placement='bottom' onHide={onClose} className="offcanvas-bottom offcanvasBG">
+      <Offcanvas.Header className='relative py-4'>
+        <h1 className='britti fs_18 mb-0 text-center w-full'>All Hangers ({users?.length})</h1>
+        <RiCloseLine onClick={onClose} className='w-[24px] h-[24px] absolute right-5' />
+      </Offcanvas.Header>
+      <Offcanvas.Body>
+        <div className=' flex flex-col items-center h-100 w-full px-[5px]'>
+          {users?.map((user, index) => (
+            <div
+              key={user.id}
+              onClick={() => onUserSelect(user)}
+              className='profileCard mt-2 flex items-center gap-3 w-full cursor-pointer'>
+              <div className='profile_Image'>
+                <img src={(user?.image)} className='bg_primary' alt="" />
+              </div>
+              <div>
+                <h2 className='fs_16 britti_medium mb-1'>{user?.name}</h2>
+                <span className='fs_14 txt_grey'>{user?.designation} - {user?.company}.</span>
+              </div>
+              <RiArrowRightSLine className='ms-auto w-[20px] h-[20px]' />
+            </div>
+          ))}
+        </div>
+      </Offcanvas.Body>
+    </Offcanvas>
+  );
+};
+
+const Home = () => {
+  const dispatch = useDispatch();
+  const {
+    location,
+    loading: locationLoading,
+    error: locationError,
+    permissionDenied,
+    permissionStatus,
+    getCurrentLocation,
+    retryLocation
+  } = useLocation();
+
+  const [users, setUsers] = useState(null);
+  const [isUsersLoading, setIsUsersLoading] = useState(false);
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [map, setMap] = useState(null);
+  const [userIcons, setUserIcons] = useState({});
+  const [currentUserIcon, setCurrentUserIcon] = useState(null);
+  const [filterData, setFilterData] = useState(null);
+  const [currentAddress, setCurrentAddress] = useState('Getting location...');
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [useDefaultLocation, setUseDefaultLocation] = useState(false);
+
+  // Navigation states
+  const [initialNavigationComplete, setInitialNavigationComplete] = useState(false);
+  const [isNavigatingToCheckIn, setIsNavigatingToCheckIn] = useState(false);
+  const [isAtCheckInLocation, setIsAtCheckInLocation] = useState(false);
+  const [showUserAtCurrentLocation, setShowUserAtCurrentLocation] = useState(false);
+
+  // New states for stacked users
+  const [groupedUsers, setGroupedUsers] = useState([]);
+  const [stackedUsersModal, setStackedUsersModal] = useState({
+    show: false,
+    users: []
+  });
+
+  const UserDataEncrypted = useSelector(state => state?.appData?.userData);
+  const currentUserData = decryptData(UserDataEncrypted);
+
+  const [center, setCenter] = useState({
+    lat: 20.673,
+    lng: -103.344
+  });
+
+  // Drawer states
+  const [peopleDrawer, setPeopleDrawer] = useState(false);
+  const handlePeopleClose = () => setPeopleDrawer(false);
+
+  const [filterDrawer, setFilterDrawer] = useState(false);
+  const handleFilterClose = () => setFilterDrawer(false);
+  const handleFilterShow = () => setFilterDrawer(true);
+
+  const [checkInDrawer, setCheckInDrawer] = useState(false);
+  const handleCheckInClose = () => setCheckInDrawer(false);
+  const handleCheckInShow = () => setCheckInDrawer(true);
+
+  const [checkOutDrawer, setCheckOutDrawer] = useState(false);
+  const handleCheckOutClose = () => setCheckOutDrawer(false);
+  const handleCheckOutShow = () => setCheckOutDrawer(true);
+
+  const [checkoutComplete, setCheckoutComplete] = useState(false);
+  const handleCompleteCheckoutClose = () => setCheckoutComplete(false);
+  const handleCompleteCheckOutShow = () => setCheckoutComplete(true);
+
+  const encryptedToken = useSelector(state => state?.appData?.userToken);
+  const userToken = decryptData(encryptedToken);
+
+  // Load the Google Maps script - MOVED TO TOP
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: 'AIzaSyAQiilQ_i4LRPFyMhfLB5ZT3UGMTIxqL0Y',
+  });
+
+  // Get current location only once on mount
+  useEffect(() => {
+    getCurrentLocation();
+  }, []);
+
+  // Handle location permission denied
+  useEffect(() => {
+    if (permissionDenied && !useDefaultLocation) {
+      setShowLocationModal(true);
+    }
+  }, [permissionDenied, useDefaultLocation]);
+
+  // MAIN LOGIC: Handle initial navigation on login/app load
+  useEffect(() => {
+    const handleInitialNavigation = async () => {
+      // Wait for essential data to be available
+      if (!userToken || !isLoaded || initialNavigationComplete) return;
+      
+      console.log('Checking for active check-in on login...');
+      
+      // Check if user has an active check-in
+      const checkInLat = localStorage.getItem('checkInLat');
+      const checkInLong = localStorage.getItem('checkInLong');
+      const storedCheckInData = localStorage.getItem('checkInData');
+      
+      // Verify check-in is still active (not expired)
+      let isActiveCheckIn = false;
+      if (storedCheckInData) {
+        try {
+          const checkInData = JSON.parse(storedCheckInData);
+          const checkInTime = checkInData.checkInTime;
+          const duration = checkInData.duration; // in minutes
+          
+          if (checkInTime && duration) {
+            const checkInDate = new Date(checkInTime);
+            const expiryDate = new Date(checkInDate.getTime() + (duration * 60 * 1000));
+            const now = new Date();
+            isActiveCheckIn = now <= expiryDate;
+            
+            if (!isActiveCheckIn) {
+              // Check-in expired, clean up
+              localStorage.removeItem('checkInLong');
+              localStorage.removeItem('checkInLat');
+              localStorage.removeItem('checkInType');
+              localStorage.removeItem('checkInPlaceName');
+              localStorage.removeItem('checkInData');
+              dispatch(setCheckInStatus(false));
+              dispatch(setCheckInData(null));
+              console.log('Check-in expired on login, cleared stored data');
+            } else {
+              // Check-in is active, update Redux state
+              dispatch(setCheckInStatus(true));
+              dispatch(setCheckInData(checkInData));
+              console.log('Active check-in found, updated Redux state');
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing check-in data:', error);
+          clearExpiredCheckIn();
+        }
+      }
+
+      // Navigate to check-in location if active and coordinates exist
+      if (isActiveCheckIn && checkInLat && checkInLong) {
+        const checkInLatitude = parseFloat(checkInLat);
+        const checkInLongitude = parseFloat(checkInLong);
+        
+        console.log('Navigating to check-in location:', { 
+          lat: checkInLatitude, 
+          lng: checkInLongitude 
+        });
+        
+        // Set coordinates and center
+        setLatitude(checkInLatitude);
+        setLongitude(checkInLongitude);
+        
+        const checkInCenter = {
+          lat: checkInLatitude,
+          lng: checkInLongitude
+        };
+        
+        setCenter(checkInCenter);
+        setIsAtCheckInLocation(true);
+        setShowUserAtCurrentLocation(false); // Show user at check-in location initially
+        
+        // Get address for check-in location
+        getAddressFromCoordinates(checkInLatitude, checkInLongitude);
+        
+        // If map is already loaded, navigate smoothly
+        if (map) {
+          setIsNavigatingToCheckIn(true);
+          map.panTo(checkInCenter);
+          map.setZoom(16);
+          
+          setTimeout(() => {
+            setIsNavigatingToCheckIn(false);
+          }, 1000);
+        }
+        
+        console.log('User navigated to active check-in location');
+      } else {
+        // No active check-in, use GPS location if available
+        if (location?.latitude && location?.longitude) {
+          setLatitude(location.latitude);
+          setLongitude(location.longitude);
+          
+          const gpsCenter = {
+            lat: location.latitude,
+            lng: location.longitude
+          };
+          
+          setCenter(gpsCenter);
+          setIsAtCheckInLocation(false);
+          setShowUserAtCurrentLocation(false);
+          getAddressFromCoordinates(location.latitude, location.longitude);
+          
+          if (map) {
+            map.panTo(gpsCenter);
+            map.setZoom(14);
+          }
+          
+          console.log('No active check-in, using GPS location');
+        }
+      }
+      
+      setInitialNavigationComplete(true);
+    };
+
+    // Small delay to ensure all data is loaded
+    const timeoutId = setTimeout(handleInitialNavigation, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [userToken, isLoaded, map, location, initialNavigationComplete, dispatch]);
+
+  // Handle check-in status changes (from Redux)
+  const checkInStatus = useSelector(state => state.appData?.checkInStatus);
+  
+  useEffect(() => {
+    if (!initialNavigationComplete) return;
+    
+    const checkInLat = localStorage.getItem('checkInLat');
+    const checkInLong = localStorage.getItem('checkInLong');
+    
+    if (checkInStatus && checkInLat && checkInLong) {
+      // User just checked in or check-in status updated
+      const checkInLatitude = parseFloat(checkInLat);
+      const checkInLongitude = parseFloat(checkInLong);
+      
+      setLatitude(checkInLatitude);
+      setLongitude(checkInLongitude);
+      
+      // Reset flag when user checks in - show them at check-in location
+      setShowUserAtCurrentLocation(false);
+      
+      const checkInCenter = {
+        lat: checkInLatitude,
+        lng: checkInLongitude
+      };
+      
+      if (map) {
+        setIsNavigatingToCheckIn(true);
+        map.panTo(checkInCenter);
+        map.setZoom(16);
+        
+        setTimeout(() => {
+          setIsNavigatingToCheckIn(false);
+        }, 1000);
+      } else {
+        setCenter(checkInCenter);
+      }
+      
+      setIsAtCheckInLocation(true);
+      getAddressFromCoordinates(checkInLatitude, checkInLongitude);
+      
+    } else if (location?.latitude && location?.longitude) {
+      // No check-in, use GPS location
+      setLatitude(location.latitude);
+      setLongitude(location.longitude);
+      
+      const gpsCenter = {
+        lat: location.latitude,
+        lng: location.longitude
+      };
+      
+      if (map && !checkInStatus) {
+        map.panTo(gpsCenter);
+        map.setZoom(14);
+      } else if (!checkInStatus) {
+        setCenter(gpsCenter);
+      }
+      
+      setIsAtCheckInLocation(false);
+      if (!checkInStatus) {
+        getAddressFromCoordinates(location.latitude, location.longitude);
+      }
+    }
+  }, [checkInStatus, location, map, initialNavigationComplete]);
+
+  // Auto-clear expired check-ins
+  useEffect(() => {
+    const checkExpiry = setInterval(() => {
+      if (clearExpiredCheckIn()) {
+        dispatch(setCheckInStatus(false));
+        dispatch(setCheckInData(null));
+        console.log('Check-in expired, cleared data and updated state');
+      }
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(checkExpiry);
+  }, [dispatch]);
+
+  // Navigation functions
+  const navigateToCurrentLocation = useCallback(() => {
+    if (!map || !location?.latitude || !location?.longitude) return;
+    
+    const gpsCenter = {
+      lat: location.latitude,
+      lng: location.longitude
+    };
+    
+    // Update the map view
+    map.panTo(gpsCenter);
+    map.setZoom(14);
+    
+    // Update the coordinate states to move the user icon to current location
+    setLatitude(location.latitude);
+    setLongitude(location.longitude);
+    
+    // Update the center state
+    setCenter(gpsCenter);
+    
+    // Set flag to show user at current location instead of check-in location
+    setShowUserAtCurrentLocation(true);
+    
+    // Mark that we're not at check-in location anymore (for display purposes)
+    setIsAtCheckInLocation(false);
+    
+    // Update address to current GPS location
+    getAddressFromCoordinates(location.latitude, location.longitude);
+  }, [map, location]);
+
+  // Function to navigate specifically to check-in location (for timer button)
+  const navigateToCheckInFromTimer = useCallback(() => {
+    const checkInLat = localStorage.getItem('checkInLat');
+    const checkInLong = localStorage.getItem('checkInLong');
+    
+    if (checkInStatus && checkInLat && checkInLong && map) {
+      const checkInCenter = {
+        lat: parseFloat(checkInLat),
+        lng: parseFloat(checkInLong)
+      };
+      
+      setIsNavigatingToCheckIn(true);
+      map.panTo(checkInCenter);
+      map.setZoom(16);
+      
+      // Reset the flag to show user at check-in location
+      setShowUserAtCurrentLocation(false);
+      
+      // Update coordinates to check-in location
+      setLatitude(parseFloat(checkInLat));
+      setLongitude(parseFloat(checkInLong));
+      
+      // Update address to check-in location
+      getAddressFromCoordinates(parseFloat(checkInLat), parseFloat(checkInLong));
+      
+      setTimeout(() => {
+        setIsNavigatingToCheckIn(false);
+      }, 1000);
+    }
+  }, [checkInStatus, map]);
+
+  // Calculate map center based on check-in status
+  const mapCenter = useMemo(() => {
+    const checkInLat = localStorage.getItem('checkInLat');
+    const checkInLong = localStorage.getItem('checkInLong');
+    
+    if (checkInStatus && checkInLat && checkInLong && !showUserAtCurrentLocation) {
+      return {
+        lat: parseFloat(checkInLat),
+        lng: parseFloat(checkInLong)
+      };
+    }
+    
+    return center;
+  }, [checkInStatus, center, showUserAtCurrentLocation]);
+
+  // Helper function to group users by location
+  const groupUsersByLocation = useCallback((usersList) => {
+    if (!usersList || usersList.length === 0) return [];
+
+    const groups = [];
+    const processed = new Set();
+
+    usersList?.forEach((user, index) => {
+      if (processed.has(index)) return;
+
+      const userLat = parseFloat(user?.loc?.lat);
+      const userLng = parseFloat(user?.loc?.lng);
+
+      if (!isValidCoordinate(userLat, userLng)) return;
+
+      const nearbyUsers = usersList.filter((otherUser, otherIndex) => {
+        if (processed.has(otherIndex)) return false;
+
+        const otherLat = parseFloat(otherUser?.loc?.lat);
+        const otherLng = parseFloat(otherUser?.loc?.lng);
+
+        if (!isValidCoordinate(otherLat, otherLng)) return false;
+
+        const distance = Math.sqrt(
+          Math.pow(userLat - otherLat, 2) + Math.pow(userLng - otherLng, 2)
+        );
+
+        return distance < 0.0005;
+      });
+
+      nearbyUsers.forEach((_, idx) => {
+        const originalIndex = usersList.findIndex(u => u.id === nearbyUsers[idx].id);
+        processed.add(originalIndex);
+      });
+
+      groups.push({
+        id: `group-${user.id}`,
+        lat: userLat,
+        lng: userLng,
+        users: nearbyUsers,
+        count: nearbyUsers.length
+      });
+    });
+
+    return groups;
+  }, []);
+
+  // Create stacked marker icon
+  const createStackedMarkerIcon = useCallback(async (users) => {
+    try {
+      const maxDisplay = 4;
+      const displayUsers = users?.slice(0, maxDisplay);
+      const remainingCount = users?.length - maxDisplay;
+
+      const imagePromises = displayUsers.map(user =>
+        user?.image ? convertImageToDataURL(user?.image) : null
+      );
+
+      const imageDataUrls = await Promise.all(imagePromises);
+
+      const avatarSize = 20;
+      const overlapOffset = 10;
+      const totalWidth = avatarSize + (displayUsers?.length - 1 + (remainingCount > 0 ? 2 : 0)) * overlapOffset;
+      const height = avatarSize;
+      const padding = 1;
+      const pillWidth = totalWidth + padding * 3;
+      const pillHeight = height + padding * 3;
+
+      let svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="${pillWidth}" height="${pillHeight}">
+  <defs>
+    <clipPath id="circleClip">
+      <circle cx="${avatarSize / 2}" cy="${avatarSize / 2}" r="${avatarSize / 2}" />
+    </clipPath>
+  </defs>
+  <rect x="0" y="0" width="${pillWidth}" height="${pillHeight}" rx="${pillHeight / 2}" ry="${pillHeight / 2}" fill="white" />
+`;
+
+      [...displayUsers].reverse().forEach((_, reverseIndex) => {
+        const index = displayUsers.length - 1 - reverseIndex;
+        const imageDataUrl = imageDataUrls[index];
+        const x = index * overlapOffset;
+        svg += `
+  <g transform="translate(${x + padding + 1}, 1.5)">
+    <circle cx="${avatarSize / 2}" cy="${avatarSize / 2}" r="${avatarSize / 2}" fill="#83CAE1" stroke="white" />
+    <clipPath id="clip-${index}">
+      <circle cx="${avatarSize / 2}" cy="${avatarSize / 2}" r="${avatarSize / 2}" />
+    </clipPath>
+    <image href="${imageDataUrl}" width="${avatarSize}" height="${avatarSize}" clip-path="url(#clip-${index})" />
+  </g>
+`;
+      });
+
+      if (remainingCount > 0) {
+        const x = displayUsers.length * overlapOffset;
+        svg += `
+        <g transform="translate(${x}, 0)">
+          <circle cx="${avatarSize / 2}" cy="${avatarSize / 2}" r="${avatarSize / 2}" fill="#f2f4f7" />
+          <text x="${avatarSize / 2}" y="${avatarSize / 2 + 4}" text-anchor="middle"
+                font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2d2f30">
+            +${remainingCount}
+          </text>
+        </g>
+      `;
+      }
+
+      svg += `</svg>`;
+
+      return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+    } catch (error) {
+      console.error('Error creating stacked marker:', error);
+      return null;
+    }
+  }, []);
+
+  // Group users when users list changes
+  useEffect(() => {
+    if (users && users?.length > 0) {
+      const grouped = groupUsersByLocation(users);
+      setGroupedUsers(grouped);
+    } else {
+      setGroupedUsers([]);
+    }
+  }, [users, groupUsersByLocation]);
+
+  // Load icons for grouped users
+  useEffect(() => {
+    const loadGroupedIcons = async () => {
+      if (!groupedUsers || groupedUsers.length === 0) {
+        setUserIcons({});
+        return;
+      }
+
+      const icons = {};
+
+      for (const group of groupedUsers) {
+        try {
+          const stackedIcon = await createStackedMarkerIcon(group.users);
+          if (stackedIcon) {
+            icons[group.id] = stackedIcon;
+          }
+        } catch (error) {
+          console.error(`Error loading icon for group ${group.id}:`, error);
+        }
+      }
+
+      setUserIcons(icons);
+    };
+
+    loadGroupedIcons();
+  }, [groupedUsers, createStackedMarkerIcon]);
+
+  // Handle stacked marker click
+  const handleStackedMarkerClick = useCallback((group) => {
+    if (group.count === 1) {
+      setSelectedUser(group.users[0]);
+      setPeopleDrawer(true);
+    } else {
+      setStackedUsersModal({
+        show: true,
+        users: group.users
+      });
+    }
+  }, []);
+
+  // Handle user selection from stacked modal
+  const handleUserSelectFromModal = useCallback((user) => {
+    setStackedUsersModal({ show: false, users: [] });
+    setSelectedUser(user);
+    setPeopleDrawer(true);
+  }, []);
+
+  // Close stacked users modal
+  const handleCloseStackedModal = useCallback(() => {
+    setStackedUsersModal({ show: false, users: [] });
+  }, []);
+
+  // Load current user icon when currentUserData is available
+  useEffect(() => {
+    const loadCurrentUserIcon = async () => {
+      if (currentUserData?.image) {
+        try {
+          const borderedIcon = await createMarkerWithBorder(currentUserData.image);
+          setCurrentUserIcon(borderedIcon);
+        } catch (error) {
+          console.error('Error loading current user icon:', error);
+          setCurrentUserIcon(null);
+        }
+      }
+    };
+
+    loadCurrentUserIcon();
+  }, [currentUserData?.image]);
+
+  // Function to get address from coordinates using reverse geocoding
+  const getAddressFromCoordinates = async (lat, lng) => {
+    try {
+      const geocoder = new google.maps.Geocoder();
+      const latlng = { lat: parseFloat(lat), lng: parseFloat(lng) };
+
+      geocoder.geocode({ location: latlng }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          const address = results[0].formatted_address;
+          setCurrentAddress(address);
+        } else {
+          setCurrentAddress(`${lat?.toFixed(4)}, ${lng?.toFixed(4)}`);
+        }
+      });
+    } catch (error) {
+      console.error('Error getting address:', error);
+      setCurrentAddress(`${lat?.toFixed(4)}, ${lng?.toFixed(4)}`);
+    }
+  };
+
+  // Handle location retry
+  const handleLocationRetry = async () => {
+    const success = await retryLocation();
+    if (!success && permissionStatus === 'denied') {
+      // Permission is blocked, the modal will show instructions
+    }
+  };
+
+  useEffect(() => {
+    if (permissionStatus === 'granted' && showLocationModal) {
+      setShowLocationModal(false);
+      getCurrentLocation();
+    }
+  }, [permissionStatus, showLocationModal, getCurrentLocation]);
+
+  // Handle using app without location
+  const handleUseWithoutLocation = () => {
+    setShowLocationModal(false);
+    setUseDefaultLocation(true);
+    setCurrentAddress('Default Location (Enable location for better experience)');
+  };
+
+  // Static container style
+  const containerStyle = {
+    width: '100%',
+    height: 'calc(var(--vh, 1vh) * 100)'
+  };
+
+  const { post } = ApiFunction();
+  const intervalRef = useRef(null);
+
+  // API call function
+  const getMapUsers = useCallback(async () => {
+    if (!userToken) return;
+
+    setIsUsersLoading(true);
+
+    const data = new FormData();
+    data.append('type', 'get_map_users');
+    data.append('user_id', userToken);
+
+    if (filterData && Object.keys(filterData).length > 0) {
+      if (filterData.gender) {
+        data.append('gender', filterData.gender);
+      }
+      if (filterData.interests && filterData.interests.length > 0) {
+        data.append('interests', JSON.stringify(filterData.interests));
+      }
+      if (filterData.languages && filterData.languages.length > 0) {
+        const languageNames = filterData.languages.map(lang => lang.name);
+        data.append('languages', JSON.stringify(languageNames));
+      }
+    }
+
+    try {
+      const res = await Promise.race([
+        post('', data),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('API timeout')), 25000)
+        )
+      ]);
+
+      if (res?.result) {
+        setUsers(prevUsers => {
+          const newUsers = res.data;
+          if (JSON.stringify(prevUsers) !== JSON.stringify(newUsers)) {
+            return newUsers;
+          }
+          return prevUsers;
+        });
+      } else {
+        setUsers([]);
+      }
+    } catch (err) {
+      console.log("Error in mapUsers API =>", err, 'at', new Date().toLocaleTimeString());
+    } finally {
+      setIsUsersLoading(false);
+    }
+  }, [userToken, filterData, post]);
+
+  // Interval management
+  useEffect(() => {
+    if (!userToken) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
+
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    getMapUsers();
+
+    intervalRef.current = setInterval(() => {
+      console.log('30-second interval triggered at:', new Date().toLocaleTimeString());
+      getMapUsers();
+    }, 30000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [userToken]);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
+  // When filterData changes, call API immediately
+  useEffect(() => {
+    if (userToken && filterData !== null) {
+      setTimeout(() => {
+        getMapUsers();
+      }, 100);
+    }
+  }, [filterData]);
+
+  // Update user location when lat/lng changes
+  useEffect(() => {
+    const updateUserLocation = async () => {
+      if (!latitude || !longitude || !userToken || useDefaultLocation) return;
+
+      const data = new FormData();
+      data.append('type', 'add_data');
+      data.append('user_id', userToken);
+      data.append('table_name', 'user_locations');
+      data.append('lat', latitude);
+      data.append('lng', longitude);
+
+      try {
+        await post('', data);
+      } catch (err) {
+        console.log("Error updating location =>", err);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      if (latitude && longitude && !useDefaultLocation) {
+        updateUserLocation();
+      }
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [latitude, longitude, userToken, post, useDefaultLocation]);
+
+  // Helper functions for markers
+  const convertImageToDataURL = (url) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+
+      const timeout = setTimeout(() => {
+        console.error('Image load timeout for:', url);
+        reject(new Error('Image load timeout'));
+      }, 10000);
+
+      img.onload = () => {
+        clearTimeout(timeout);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+
+      img.onerror = (error) => {
+        console.error('Image failed to load:', url, error);
+        clearTimeout(timeout);
+        reject(error);
+      };
+
+      img.src = url;
+    });
+  };
+
+  const createMarkerWithBorder = async (imageUrl) => {
+    try {
+      const dataUrl = await convertImageToDataURL(imageUrl);
+      const svg = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52">
+            <circle cx="26" cy="26" r="26" fill="white" />
+            <image href="${dataUrl}" x="2" y="2" height="48" width="48" clip-path="circle(24px at center)" />
+          </svg>
+        `;
+      return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+    } catch (error) {
+      console.error('Error creating marker:', error);
+      return null;
+    }
+  };
+
+  const onMapLoad = useCallback((mapInstance) => {
+    setMap(mapInstance);
+  }, []);
+
+  // Helper function to validate coordinates
+  const isValidCoordinate = (lat, lng) => {
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+    return !isNaN(latitude) && !isNaN(longitude) &&
+      latitude >= -90 && latitude <= 90 &&
+      longitude >= -180 && longitude <= 180;
+  };
+
+  // Show loading state while the map is loading
+  if (!isLoaded) {
+    return <Splash />;
+  }
+
+  return (
+    <>
+      {/* Location Permission Modal */}
+      <LocationPermissionModal
+        show={showLocationModal}
+        loading={locationLoading}
+        permissionStatus={permissionStatus}
+        error={locationError}
+        onRetry={handleLocationRetry}
+        onCancel={handleUseWithoutLocation}
+      />
+
+      {/* Stacked Users Modal */}
+      <StackedUsersModal
+        show={stackedUsersModal.show}
+        users={stackedUsersModal.users}
+        onClose={handleCloseStackedModal}
+        onUserSelect={handleUserSelectFromModal}
+      />
+
+      <div className="map-container h_100vh">
+        <div className="location-header">
+          <div>
+            <h3 className='britti_medium fs_16'>
+              {showUserAtCurrentLocation ? "Current Location" : checkInStatus ? "Check-in Location" : "Current Location"}
+            </h3>
+            <p className='flex items-center gap-[6px] txt_grey fs_14 '>
+              <RiMapPinLine />
+              <span className='max-w-[300px] text-clamp-1 mt-[3px]'>{currentAddress}</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Navigation button - always goes to current GPS location */}
+            <button 
+              className="flex items-center justify-center w-[45px] h-[45px] bg-white rounded-full shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors"
+              onClick={navigateToCurrentLocation}
+              title="Go to your current location"
+              disabled={isNavigatingToCheckIn}
+            >
+              <RiFocus3Line 
+                className={`w-[18px] h-[18px] text-gray-600 transition-colors ${isNavigatingToCheckIn ? 'animate-pulse' : ''}`}
+              />
+            </button>
+            
+            <button className='equalizerBTN' onClick={handleFilterShow}>
+              <RiEqualizer2Line className='w-[16px] text-[#4A8DFF]' />
+            </button>
+          </div>
+        </div>
+
+        <GoogleMap
+          mapContainerStyle={containerStyle}
+          center={mapCenter}
+          zoom={checkInStatus && !showUserAtCurrentLocation ? 16 : 14}
+          onLoad={onMapLoad}
+          options={{
+            fullscreenControl: false,
+            streetViewControl: false,
+            mapTypeControl: false,
+            zoomControl: false,
+            scrollwheel: true,
+            disableDoubleClickZoom: false,
+            keyboardShortcuts: true,
+            cameraControl: false,
+            gestureHandling: 'cooperative'
+          }}
+        >
+
+          {/* Current user marker */}
+          {!useDefaultLocation && currentUserIcon && (
+            <MarkerF
+            position={
+                showUserAtCurrentLocation
+                  ? { lat: location?.latitude || latitude, lng: location?.longitude || longitude }
+                  : checkInStatus && localStorage.getItem('checkInLat') && localStorage.getItem('checkInLong')
+                    ? mapCenter 
+                    : (location?.latitude && location?.longitude) 
+                      ? { lat: location.latitude, lng: location.longitude }
+                      : mapCenter
+              }
+            icon={{
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: "#4285F4",
+              fillOpacity: 1,
+              strokeColor: "#FFFFFF",
+              strokeWeight: 2,
+            }}
+          />
+            // <MarkerF
+            //   position={
+            //     showUserAtCurrentLocation
+            //       ? { lat: location?.latitude || latitude, lng: location?.longitude || longitude }
+            //       : checkInStatus && localStorage.getItem('checkInLat') && localStorage.getItem('checkInLong')
+            //         ? mapCenter 
+            //         : (location?.latitude && location?.longitude) 
+            //           ? { lat: location.latitude, lng: location.longitude }
+            //           : mapCenter
+            //   }
+            //   icon={{
+            //     url: currentUserIcon,
+            //     scaledSize: new google.maps.Size(48, 48),
+            //   }}
+            //   title={showUserAtCurrentLocation ? "Current GPS Location" : checkInStatus ? "Check-in Location" : "Current Location"}
+            // />
+          )}
+
+          {/* Grouped user markers */}
+          {groupedUsers?.map((group) => {
+            if (!userIcons[group.id]) {
+              return null;
+            }
+
+            const isGroup = group?.count > 1;
+            const width = isGroup ? group?.count * 30 + 10 : 42;
+            const height = 44;
+            const anchorX = width / 2;
+            const anchorY = height / 2;
+
+            return (
+              <MarkerF
+                key={group?.id}
+                position={{ lat: group?.lat, lng: group?.lng }}
+                onClick={() => handleStackedMarkerClick(group)}
+                icon={{
+                  url: userIcons[group?.id],
+                  scaledSize: new google.maps.Size(width, height),
+                  anchor: new google.maps.Point(anchorX, anchorY),
+                }}
+              />
+            );
+          })}
+
+        </GoogleMap>
+
+        <FooterHome
+          checkoutShow={handleCheckOutShow}
+          checkInShow={handleCheckInShow}
+          navigateToCheckIn={navigateToCheckInFromTimer}
+        />
+      </div>
+
+      {/* Drawers */}
+      <NearbyDrawer
+        show={peopleDrawer}
+        hide={handlePeopleClose}
+        userData={selectedUser}
+      />
+      <FilterDrawer
+        show={filterDrawer}
+        hide={handleFilterClose}
+        setFilterData={setFilterData}
+      />
+      <CheckIn
+        show={checkInDrawer}
+        hide={handleCheckInClose}
+      />
+      <CheckOut
+        show={checkOutDrawer}
+        hide={handleCheckOutClose}
+        successDrawer={handleCompleteCheckOutShow}
+      />
+      <CheckOutComplete
+        show={checkoutComplete}
+        checkInShow={handleCheckInShow}
+        hide={handleCompleteCheckoutClose}
+      />
+      <VisibilityDrawer />
+    </>
+  );
+};
+
+export default Home;
